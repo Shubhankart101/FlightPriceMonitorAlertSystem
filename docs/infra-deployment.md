@@ -22,6 +22,16 @@ infra/terraform/
 - `postgresql`: PostgreSQL flexible server + application database.
 - `redis`: managed Redis cache for Celery broker/result backend.
 
+## Environment Composition
+
+The `environments/dev` stack wires all modules together and sets app settings required for Django + Celery runtime:
+
+- Django settings module
+- secret key
+- DB connection values
+- Redis broker/backend values
+- container image reference for web app
+
 ## Deploy Locally (Developer Flow)
 
 1. Move to environment folder:
@@ -38,6 +48,12 @@ Copy-Item terraform.tfvars.example terraform.tfvars
 
 3. Update secrets in `terraform.tfvars`.
 
+Required values to set:
+
+- `docker_image_name`
+- `django_secret_key`
+- `db_admin_password`
+
 4. Initialize and validate:
 
 ```powershell
@@ -52,6 +68,21 @@ terraform plan
 terraform apply
 ```
 
+## Recommended Plan and Apply Pattern
+
+Use explicit plan output for safer applies:
+
+```powershell
+terraform plan -out tfplan
+terraform apply tfplan
+```
+
+## Destroy (Non-production Cleanup)
+
+```powershell
+terraform destroy
+```
+
 ## Required Cloud Credentials
 
 Use service principal variables in shell or GitHub Secrets:
@@ -61,9 +92,35 @@ Use service principal variables in shell or GitHub Secrets:
 - `ARM_TENANT_ID`
 - `ARM_SUBSCRIPTION_ID`
 
+Use least-privilege service principal access scoped to target subscription/resource group strategy.
+
+## GitHub Actions Integration
+
+- Workflow: `.github/workflows/infra-terraform.yml`
+- On PR/push: format, init, validate, plan
+- On manual dispatch from main: apply
+
+## Operational Notes
+
+- Keep state backend strategy consistent across environments.
+- Never commit real `.tfvars` containing secrets.
+- Use `terraform.tfvars.example` as template only.
+- Review plan output before apply, especially for destructive changes.
+
 ## Outputs
 
 - Web app URL
 - PostgreSQL host
 - Redis host
 - Resource group name
+
+## Troubleshooting
+
+- Auth failure:
+  - verify ARM secret values and expiration
+- Provider init errors:
+  - verify internet/proxy and provider version constraints
+- Plan drift unexpectedly large:
+  - inspect previous manual changes in Azure Portal
+- Apply lock issues (remote backend use-case):
+  - confirm no concurrent apply in another pipeline
