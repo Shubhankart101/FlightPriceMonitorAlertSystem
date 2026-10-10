@@ -34,7 +34,7 @@ class NotificationLogTest(TestCase):
         log = NotificationLog.objects.create(
             alert=self.alert,
             triggered_price=4200,
-            message="Price dropped to Rs 4200 for DEL-BOM",
+            message="Price dropped to ₹4200 for DEL-BOM",
         )
 
         self.assertEqual(log.triggered_price, 4200)

@@ -26,7 +26,7 @@ class PriceAlert(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.origin}-{self.destination} @ Rs {self.threshold_price}"
+        return f"{self.origin}-{self.destination} @ ₹{self.threshold_price}"
 
 
 class NotificationLog(models.Model):

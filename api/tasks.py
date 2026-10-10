@@ -41,8 +41,8 @@ def send_notification(alert_id, triggered_price):
 
     message = (
         f"Price alert triggered! {alert.origin}-{alert.destination} "
-        f"is now Rs {triggered_price} - below your threshold of "
-        f"Rs {alert.threshold_price}"
+        f"is now ₹{triggered_price} - below your threshold of "
+        f"₹{alert.threshold_price}"
     )
 
     NotificationLog.objects.create(
