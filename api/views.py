@@ -68,8 +68,11 @@ class LoginView(APIView):
 class AlertListView(APIView):
     permission_classes = [IsAuthenticated]
 
+    def get_queryset(self):
+        return PriceAlert.objects.filter(user=self.request.user)
+
     def get(self, request):
-        alerts = PriceAlert.objects.filter(user=request.user)
+        alerts = self.get_queryset()
         data = AlertSerializer(alerts, many=True)
         return Response(data.data, status=status.HTTP_200_OK)
 

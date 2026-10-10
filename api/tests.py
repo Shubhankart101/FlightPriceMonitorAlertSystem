@@ -101,6 +101,24 @@ class ApiAuthAndAlertFlowTest(APITestCase):
         self.assertEqual(login_response.status_code, status.HTTP_200_OK)
         self.assertIn("access", login_response.json())
 
+    def test_register_duplicate_username_returns_400(self):
+        User.objects.create_user(username="dupuser", password="dupuser123")
+
+        response = self.client.post(
+            reverse("register"),
+            {"username": "dupuser", "password": "newpass123"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_login_wrong_password_returns_401(self):
+        response = self.client.post(
+            reverse("login"),
+            {"username": "apiuser", "password": "wrongpass"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
     def test_alerts_are_scoped_to_user(self):
         PriceAlert.objects.create(
             user=self.user,
@@ -131,3 +149,19 @@ class ApiAuthAndAlertFlowTest(APITestCase):
     def test_admin_summary_forbidden_for_regular_user(self):
         response = self.client.get(reverse("admin-summary"), **self.auth_header)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_admin_summary_allows_admin_user(self):
+        self.user.profile.role = "admin"
+        self.user.profile.save(update_fields=["role"])
+
+        response = self.client.get(reverse("admin-summary"), **self.auth_header)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("total_alerts", response.json())
+
+    def test_flight_price_valid_and_invalid_route(self):
+        valid_response = self.client.get(reverse("flight-price"), {"route": "DEL-BOM"})
+        self.assertEqual(valid_response.status_code, status.HTTP_200_OK)
+        self.assertIn("price", valid_response.json())
+
+        invalid_response = self.client.get(reverse("flight-price"), {"route": "XYZ-ABC"})
+        self.assertEqual(invalid_response.status_code, status.HTTP_404_NOT_FOUND)

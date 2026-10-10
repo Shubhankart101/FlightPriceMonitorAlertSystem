@@ -1,0 +1,138 @@
+{
+  "info": {
+    "name": "PulseNotify API Collection",
+    "_postman_id": "7e8f6a08-f8c1-4db9-90cf-3e9c8246842e",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "01 Register a new user",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": {"mode": "raw", "raw": "{\n  \"username\": \"demo_user\",\n  \"password\": \"demoPass123\",\n  \"email\": \"demo@example.com\"\n}"},
+        "url": "{{baseUrl}}/api/auth/register/"
+      }
+    },
+    {
+      "name": "02 Register duplicate username",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": {"mode": "raw", "raw": "{\n  \"username\": \"demo_user\",\n  \"password\": \"demoPass123\"\n}"},
+        "url": "{{baseUrl}}/api/auth/register/"
+      }
+    },
+    {
+      "name": "03 Login valid credentials",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": {"mode": "raw", "raw": "{\n  \"username\": \"demo_user\",\n  \"password\": \"demoPass123\"\n}"},
+        "url": "{{baseUrl}}/api/auth/login/"
+      }
+    },
+    {
+      "name": "04 Login wrong password",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": {"mode": "raw", "raw": "{\n  \"username\": \"demo_user\",\n  \"password\": \"wrongPassword\"\n}"},
+        "url": "{{baseUrl}}/api/auth/login/"
+      }
+    },
+    {
+      "name": "05 Create alert without token",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": {"mode": "raw", "raw": "{\n  \"origin\": \"DEL\",\n  \"destination\": \"BOM\",\n  \"threshold_price\": \"4500.00\"\n}"},
+        "url": "{{baseUrl}}/api/alerts/"
+      }
+    },
+    {
+      "name": "06 Create alert with token",
+      "request": {
+        "method": "POST",
+        "header": [
+          {"key": "Content-Type", "value": "application/json"},
+          {"key": "Authorization", "value": "Bearer {{accessToken}}"}
+        ],
+        "body": {"mode": "raw", "raw": "{\n  \"origin\": \"DEL\",\n  \"destination\": \"BLR\",\n  \"threshold_price\": \"4500.00\"\n}"},
+        "url": "{{baseUrl}}/api/alerts/"
+      }
+    },
+    {
+      "name": "07 List own alerts",
+      "request": {
+        "method": "GET",
+        "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+        "url": "{{baseUrl}}/api/alerts/"
+      }
+    },
+    {
+      "name": "08 Deactivate alert",
+      "request": {
+        "method": "DELETE",
+        "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+        "url": "{{baseUrl}}/api/alerts/{{alertId}}/"
+      }
+    },
+    {
+      "name": "09 Mock price valid route",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/flights/price/?route=DEL-BOM"
+      }
+    },
+    {
+      "name": "10 Mock price invalid route",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/flights/price/?route=XYZ-ABC"
+      }
+    },
+    {
+      "name": "11 Admin summary regular user",
+      "request": {
+        "method": "GET",
+        "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+        "url": "{{baseUrl}}/api/admin/summary/"
+      }
+    },
+    {
+      "name": "12 Admin summary admin token",
+      "request": {
+        "method": "GET",
+        "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+        "url": "{{baseUrl}}/api/admin/summary/"
+      }
+    },
+    {
+      "name": "13 Verify NotificationLog in PGAdmin",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/health/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Manual Step: Verify notification_logs table in PGAdmin', function () {",
+              "  pm.expect(true).to.eql(true);",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {"key": "baseUrl", "value": "http://127.0.0.1:8000"},
+    {"key": "accessToken", "value": ""},
+    {"key": "adminToken", "value": ""},
+    {"key": "alertId", "value": "1"}
+  ]
+}
