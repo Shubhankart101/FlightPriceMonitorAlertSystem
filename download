@@ -1,0 +1,7 @@
+DJANGO_SETTINGS_MODULE=pulse.settings.local
+SECRET_KEY=your-secret-key-here
+DB_NAME=pulse_db
+DB_USER=pulse_user
+DB_PASSWORD=pulse_password
+DB_HOST=localhost
+DB_PORT=5432

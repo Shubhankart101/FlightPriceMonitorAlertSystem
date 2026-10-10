@@ -1,0 +1,15 @@
+version: '3.8'
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+  
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: pulse_db
+      POSTGRES_USER: pulse_user
+      POSTGRES_PASSWORD: pulse_password
+    ports:
+      - "5432:5432"
