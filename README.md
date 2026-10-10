@@ -107,6 +107,66 @@ Extends Django's built-in User model using a OneToOneField. Includes a `role` fi
         celery -A pulse beat --loglevel=info
         ```
 
+## Local Execution Improvements
+
+This repository now has a standard runnable Django layout:
+
+- `pulse/` is the Django project package (settings, urls, celery).
+- `api/` is the Django app package (models, views, tasks, tests).
+
+### Quick Start (Windows PowerShell)
+
+```powershell
+.\start_local.ps1
+```
+
+### Manual Start (Windows PowerShell)
+
+1. Create and activate a virtual environment:
+
+```powershell
+py -3 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+2. Install dependencies:
+
+```powershell
+pip install -r requirements.txt
+```
+
+3. Copy env template:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+4. Optional: start Redis and PostgreSQL via Docker:
+
+```powershell
+docker compose up -d
+```
+
+5. Run migrations:
+
+```powershell
+python manage.py makemigrations api
+python manage.py migrate
+```
+
+6. Start the API:
+
+```powershell
+python manage.py runserver
+```
+
+API base URL: `http://127.0.0.1:8000/api/`
+
+## Database Modes
+
+- Default local mode uses SQLite (`DB_ENGINE=sqlite` in `.env`) so the app can run without Docker.
+- To use PostgreSQL, set `DB_ENGINE=postgres` and keep DB credentials aligned with `docker-compose.yml`.
+
 ## Unit Tests
 Three unit tests are included in `api/tests.py`:
 1.  `PriceThresholdTest`: Tests the threshold comparison logic.
