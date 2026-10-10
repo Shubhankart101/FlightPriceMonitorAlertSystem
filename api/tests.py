@@ -1,5 +1,9 @@
 from django.contrib.auth.models import User
 from django.test import TestCase
+from django.urls import reverse
+from rest_framework import status
+from rest_framework.test import APITestCase
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import NotificationLog, PriceAlert
 
@@ -65,3 +69,65 @@ class AlertScopingTest(TestCase):
     def test_user_cannot_see_other_users_alerts(self):
         user1_alerts = PriceAlert.objects.filter(user=self.user1)
         self.assertNotEqual(user1_alerts.first().origin, "BLR")
+
+
+class ApiAuthAndAlertFlowTest(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="apiuser", password="apipass123")
+        self.other_user = User.objects.create_user(username="otheruser", password="otherpass123")
+
+        token = RefreshToken.for_user(self.user)
+        self.auth_header = {"HTTP_AUTHORIZATION": f"Bearer {str(token.access_token)}"}
+
+    def test_health_endpoint(self):
+        response = self.client.get(reverse("health"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.json().get("status"), "ok")
+
+    def test_register_and_login(self):
+        register_response = self.client.post(
+            reverse("register"),
+            {"username": "newuser", "password": "newpass123", "email": "new@example.com"},
+            format="json",
+        )
+        self.assertEqual(register_response.status_code, status.HTTP_201_CREATED)
+        self.assertIn("access", register_response.json())
+
+        login_response = self.client.post(
+            reverse("login"),
+            {"username": "newuser", "password": "newpass123"},
+            format="json",
+        )
+        self.assertEqual(login_response.status_code, status.HTTP_200_OK)
+        self.assertIn("access", login_response.json())
+
+    def test_alerts_are_scoped_to_user(self):
+        PriceAlert.objects.create(
+            user=self.user,
+            origin="DEL",
+            destination="BOM",
+            threshold_price=4300,
+        )
+        PriceAlert.objects.create(
+            user=self.other_user,
+            origin="BLR",
+            destination="HYD",
+            threshold_price=3300,
+        )
+
+        response = self.client.get(reverse("alerts"), **self.auth_header)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.json()), 1)
+        self.assertEqual(response.json()[0]["origin"], "DEL")
+
+    def test_create_alert_requires_authentication(self):
+        response = self.client.post(
+            reverse("alerts"),
+            {"origin": "DEL", "destination": "BLR", "threshold_price": "4500.00"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_admin_summary_forbidden_for_regular_user(self):
+        response = self.client.get(reverse("admin-summary"), **self.auth_header)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)

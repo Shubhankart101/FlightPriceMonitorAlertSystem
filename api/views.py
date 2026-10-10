@@ -1,8 +1,7 @@
 import random
 
 from django.contrib.auth import authenticate
-from django.contrib.auth.models import User
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import status
@@ -13,6 +12,20 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import NotificationLog, PriceAlert
 from .permissions import IsAdminUser
+from .serializers import (
+    AlertCreateSerializer,
+    AlertSerializer,
+    LoginSerializer,
+    RegisterSerializer,
+)
+
+
+class HealthView(APIView):
+    authentication_classes = []
+    permission_classes = []
+
+    def get(self, request):
+        return Response({"status": "ok"}, status=status.HTTP_200_OK)
 
 
 class RegisterView(APIView):
@@ -20,13 +33,9 @@ class RegisterView(APIView):
     permission_classes = []
 
     def post(self, request):
-        username = request.data.get("username")
-        password = request.data.get("password")
-
-        if User.objects.filter(username=username).exists():
-            return Response({"error": "Username exists"}, status=status.HTTP_400_BAD_REQUEST)
-
-        user = User.objects.create_user(username=username, password=password)
+        serializer = RegisterSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
         refresh = RefreshToken.for_user(user)
 
         return Response(
@@ -44,9 +53,11 @@ class LoginView(APIView):
     permission_classes = []
 
     def post(self, request):
+        serializer = LoginSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
         user = authenticate(
-            username=request.data.get("username"),
-            password=request.data.get("password"),
+            username=serializer.validated_data["username"],
+            password=serializer.validated_data["password"],
         )
         if user:
             refresh = RefreshToken.for_user(user)
@@ -59,25 +70,13 @@ class AlertListView(APIView):
 
     def get(self, request):
         alerts = PriceAlert.objects.filter(user=request.user)
-        data = [
-            {
-                "id": alert.id,
-                "origin": alert.origin,
-                "destination": alert.destination,
-                "threshold_price": alert.threshold_price,
-                "status": alert.status,
-            }
-            for alert in alerts
-        ]
-        return Response(data, status=status.HTTP_200_OK)
+        data = AlertSerializer(alerts, many=True)
+        return Response(data.data, status=status.HTTP_200_OK)
 
     def post(self, request):
-        alert = PriceAlert.objects.create(
-            user=request.user,
-            origin=request.data.get("origin"),
-            destination=request.data.get("destination"),
-            threshold_price=request.data.get("threshold_price"),
-        )
+        serializer = AlertCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        alert = PriceAlert.objects.create(user=request.user, **serializer.validated_data)
         return Response({"id": alert.id}, status=status.HTTP_201_CREATED)
 
 
@@ -117,9 +116,11 @@ class AdminSummaryView(APIView):
     permission_classes = [IsAuthenticated, IsAdminUser]
 
     def get(self, request):
-        active_alerts = PriceAlert.objects.filter(status=PriceAlert.Status.ACTIVE).count()
-        triggered_alerts = PriceAlert.objects.filter(status=PriceAlert.Status.TRIGGERED).count()
-        total_alerts = PriceAlert.objects.count()
+        counts = PriceAlert.objects.aggregate(
+            total_alerts=Count("id"),
+            active_alerts=Count("id", filter=Q(status=PriceAlert.Status.ACTIVE)),
+            triggered_alerts=Count("id", filter=Q(status=PriceAlert.Status.TRIGGERED)),
+        )
         total_notifications = NotificationLog.objects.count()
 
         top_routes = list(
@@ -135,9 +136,9 @@ class AdminSummaryView(APIView):
 
         return Response(
             {
-                "total_alerts": total_alerts,
-                "active_alerts": active_alerts,
-                "triggered_alerts": triggered_alerts,
+                "total_alerts": counts["total_alerts"],
+                "active_alerts": counts["active_alerts"],
+                "triggered_alerts": counts["triggered_alerts"],
                 "total_notifications": total_notifications,
                 "top_routes": formatted_routes,
             },

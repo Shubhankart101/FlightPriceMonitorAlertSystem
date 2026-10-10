@@ -1,0 +1,8 @@
+project            = "pulsenotify"
+environment        = "dev"
+location           = "eastus"
+docker_image_name  = "ghcr.io/your-org/flightpricemonitor-alertsystem:latest"
+django_secret_key  = "replace-me"
+db_name            = "pulse_db"
+db_admin_username  = "pulse_admin"
+db_admin_password  = "replace-me"

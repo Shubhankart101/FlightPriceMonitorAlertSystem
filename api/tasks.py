@@ -1,5 +1,6 @@
 import requests
 from celery import shared_task
+from requests import RequestException
 
 from .models import NotificationLog, PriceAlert
 
@@ -11,11 +12,14 @@ def check_prices():
 
     for origin, destination in routes:
         route = f"{origin}-{destination}"
-        response = requests.get(
-            "http://localhost:8000/api/flights/price/",
-            params={"route": route},
-            timeout=10,
-        )
+        try:
+            response = requests.get(
+                "http://localhost:8000/api/flights/price/",
+                params={"route": route},
+                timeout=10,
+            )
+        except RequestException:
+            continue
 
         if response.status_code != 200:
             continue
@@ -31,6 +35,9 @@ def check_prices():
 @shared_task
 def send_notification(alert_id, triggered_price):
     alert = PriceAlert.objects.get(id=alert_id)
+
+    if alert.status != PriceAlert.Status.ACTIVE:
+        return
 
     message = (
         f"Price alert triggered! {alert.origin}-{alert.destination} "

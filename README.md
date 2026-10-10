@@ -174,3 +174,36 @@ Three unit tests are included in `api/tests.py`:
 3.  `AlertScopingTest`: Tests that users can only see their own alerts.
 
 Run tests using: `python manage.py test`
+
+## Documentation
+
+Comprehensive documentation now lives in the `docs/` folder:
+
+- `docs/README.md` (entrypoint)
+- `docs/architecture.md`
+- `docs/api-swagger-testing.md`
+- `docs/pipelines.md`
+- `docs/infra-deployment.md`
+- `docs/testing-strategy.md`
+- `docs/operations-runbook.md`
+
+## Swagger and OpenAPI
+
+- Swagger UI: `/api/docs/`
+- OpenAPI schema: `/api/schema/`
+
+## GitHub Pipelines
+
+Workflows are under `.github/workflows/`:
+
+- `validate.yml`: validation gate for app and Terraform
+- `test.yml`: dedicated Python test pipeline (matrix)
+- `build-deploy.yml`: build container and deploy to Azure Web App
+- `infra-terraform.yml`: Terraform plan/apply workflow
+
+## Terraform Infrastructure
+
+Terraform modules and environment definitions are in `infra/terraform/`.
+
+- Reusable modules: `infra/terraform/modules/*`
+- Dev environment composition: `infra/terraform/environments/dev/`
