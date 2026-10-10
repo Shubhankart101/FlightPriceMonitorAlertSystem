@@ -124,3 +124,36 @@ Use least-privilege service principal access scoped to target subscription/resou
   - inspect previous manual changes in Azure Portal
 - Apply lock issues (remote backend use-case):
   - confirm no concurrent apply in another pipeline
+
+## Variable Hardening Guidance
+
+- Keep all secret values in secure stores or CI secrets.
+- Do not use sample secrets from examples in real environments.
+- Rotate database and app secrets on a regular schedule.
+
+## State Management Recommendation
+
+- For team environments, configure remote backend (e.g., Azure storage).
+- Enable state locking where backend supports it.
+- Keep one state file per environment to avoid accidental cross-env drift.
+
+## Pre-Apply Checklist
+
+1. `terraform fmt -check` passes.
+2. `terraform validate` passes.
+3. `terraform plan` reviewed by reviewer.
+4. Variables and secrets verified for target environment.
+5. Rollback plan identified for the change set.
+
+## Post-Apply Verification
+
+- Confirm web app URL output resolves.
+- Confirm app settings include required Django and DB/Redis values.
+- Confirm DB and Redis resources are reachable from app runtime.
+- Run `/api/health/` from deployed endpoint.
+
+## Cost and SKU Considerations
+
+- `B1`/basic SKUs are suitable for dev and light workloads.
+- Use production-appropriate SKUs for HA/performance targets.
+- Review idle and burst traffic patterns before sizing upgrades.

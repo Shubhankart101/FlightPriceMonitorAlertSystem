@@ -69,3 +69,31 @@ python -m compileall manage.py api pulse
 - Add Celery integration tests with eager mode enabled in test settings.
 - Add performance smoke tests for high alert volume routes.
 - Add a lightweight deploy smoke test hitting `/api/health/` post-deploy.
+
+## Quality Gates by Change Type
+
+- API behavior change:
+	- unit/API tests updated
+	- Postman collection updated
+	- Swagger docs reviewed
+- Celery/task change:
+	- unit tests for edge cases
+	- manual async verification in local or dev
+- Infra change:
+	- terraform validate and plan reviewed
+	- environment variable compatibility verified
+
+## PR Exit Criteria
+
+1. Relevant tests pass in CI.
+2. No unresolved migration drift for model changes.
+3. Documentation updated when behavior changes.
+4. Manual checks documented when full automation is not feasible.
+
+## Regression Focus Areas
+
+- authentication and authorization boundaries
+- user-level data isolation on alert list/delete
+- admin summary role enforcement
+- scheduler-to-worker notification path
+- DB schema compatibility after model changes

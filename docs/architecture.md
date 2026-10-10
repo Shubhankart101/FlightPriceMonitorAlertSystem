@@ -89,3 +89,47 @@ Terraform modules for each layer are under `infra/terraform/modules/`.
 - JWT tokens gate all non-public API operations.
 - Secret values (DB creds, Django secret key, cloud credentials) are sourced from env/secrets, not committed in code.
 - Infra apply is isolated to explicit workflow conditions and secret-backed credentials.
+
+## Sequence Diagram (Alert Lifecycle)
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant API as Django API
+    participant DB as Database
+    participant Beat as Celery Beat
+    participant Worker as Celery Worker
+    User->>API: POST /api/alerts/
+    API->>DB: persist PriceAlert(active)
+    Beat->>Worker: enqueue check_prices
+    Worker->>API: GET /api/flights/price/?route=...
+    API-->>Worker: route + random price
+    Worker->>DB: create NotificationLog (if threshold met)
+    Worker->>DB: update PriceAlert(status=triggered)
+```
+
+## Data Lifecycle
+
+- `PriceAlert` starts as `active`.
+- User deactivation sets state to `inactive`.
+- Threshold trigger sets state to `triggered` and logs event.
+- `NotificationLog` acts as immutable audit trail for triggered checks.
+
+## Scalability Notes
+
+- API can scale independently from workers in cloud deployment.
+- Celery worker concurrency can be adjusted per workload profile.
+- Periodic check interval currently fixed at 60 seconds; tune based on cost/perf.
+
+## Failure Domains
+
+- API failure impacts user CRUD/auth flows.
+- Redis failure impacts task dispatch and async processing.
+- Worker failure delays notifications but does not block API CRUD.
+- DB failure impacts all persistence operations.
+
+## Future Architecture Enhancements
+
+- Move from mock feed to external provider abstraction layer.
+- Introduce idempotency key strategy for notification processing.
+- Add metrics export (request counts, task success/failure rates, trigger latency).

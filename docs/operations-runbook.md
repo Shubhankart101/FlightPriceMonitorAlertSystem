@@ -101,3 +101,38 @@ Optional with Docker services:
 - Verify container image tag deployed is expected SHA.
 - Verify Azure app settings include required env vars.
 - Verify DB and Redis connectivity from app runtime.
+
+## Preflight Checklist Before Any Release
+
+1. Confirm target branch has passed validation and test workflows.
+2. Confirm no pending migration drift.
+3. Confirm required secrets are present in CI environment.
+4. Confirm Terraform plan was reviewed for infra-related changes.
+
+## Command Cheatsheet
+
+```powershell
+# App checks
+python manage.py check
+python manage.py test -v 2
+python manage.py makemigrations --check --dry-run
+
+# Services
+docker compose up -d
+docker compose ps
+docker compose logs redis
+docker compose logs db
+
+# Celery
+celery -A pulse worker -l info
+celery -A pulse beat -l info
+```
+
+## Escalation Guidance
+
+- Escalate to backend owner when:
+  - API errors reproduce locally with valid config
+- Escalate to DevOps owner when:
+  - GitHub Actions or deploy workflows fail consistently
+- Escalate to infra owner when:
+  - Terraform apply fails due to provider/state/resource policy issues

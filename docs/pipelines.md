@@ -101,3 +101,41 @@ Workflows live in `.github/workflows/`.
 - Protect `main`.
 - Require `Validation Pipeline` and `Test Pipeline` checks to pass before merge.
 - Restrict infra apply to maintainers via workflow permissions.
+
+## Recommended Promotion Model
+
+- Pull request stage:
+  - run validation and tests
+  - review infra plan output for IaC changes
+- Merge to `main`:
+  - run build/deploy for application image updates
+  - run infra workflow when `infra/terraform/**` changes
+
+## Release Management Notes
+
+- Use immutable image tags based on commit SHA.
+- Treat `latest` tag as convenience, not rollback source of truth.
+- For rollback, redeploy last known good SHA image.
+
+## Pipeline Ownership
+
+- Validation and test: backend + platform collaboration.
+- Build/deploy: DevOps ownership with app-team approvals.
+- Infra apply: restricted maintainer-level control.
+
+## Operational Guardrails
+
+- Never run infra apply automatically on pull requests.
+- Keep deploy secrets scoped at repository/environment level.
+- Review workflow changes with at least one infra-aware reviewer.
+
+## CI/CD Troubleshooting Commands
+
+Useful local parity checks:
+
+```powershell
+python -m compileall manage.py api pulse
+python manage.py check
+python manage.py test -v 2
+terraform -chdir=infra/terraform/environments/dev validate
+```

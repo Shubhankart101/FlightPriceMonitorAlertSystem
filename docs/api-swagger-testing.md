@@ -104,6 +104,48 @@ u.profile.save()
 - `404` on mock price route:
 	- route not in `MOCK_PRICES`
 
+## Endpoint Coverage Matrix
+
+| Endpoint | Method | Auth | Expected Success | Common Failure |
+|---|---|---|---|---|
+| `/api/auth/register/` | POST | Public | 201 | 400 duplicate username |
+| `/api/auth/login/` | POST | Public | 200 | 401 invalid credentials |
+| `/api/alerts/` | POST | JWT | 201 | 401 missing token |
+| `/api/alerts/` | GET | JWT | 200 | 401 missing token |
+| `/api/alerts/{id}/` | DELETE | JWT | 200 | 404 ownership mismatch |
+| `/api/flights/price/` | GET | Public | 200 | 404 invalid route |
+| `/api/admin/summary/` | GET | JWT + admin role | 200 | 403 non-admin user |
+
+## Validation Data Sets
+
+- Known valid routes:
+	- `DEL-BOM`
+	- `BLR-HYD`
+	- `DEL-BLR`
+	- `BOM-GOA`
+- Invalid route example:
+	- `XYZ-ABC`
+
+## Repeatability Tips
+
+- Use deterministic usernames with timestamp suffix to avoid duplicate conflicts.
+- Reset `alertId` variable between collection runs when database is fresh.
+- Save tokens in Postman environment variables from login/register responses.
+
+## Manual DB Verification Query Ideas
+
+Use SQL client/PGAdmin for runtime verification:
+
+```sql
+SELECT id, origin, destination, threshold_price, status, created_at
+FROM api_pricealert
+ORDER BY id DESC;
+
+SELECT id, alert_id, triggered_price, message, notified_at
+FROM api_notificationlog
+ORDER BY id DESC;
+```
+
 ## Suggested Postman Regression Set
 
 - Register and duplicate-register checks
@@ -124,3 +166,9 @@ GitHub validation pipeline executes:
 - Python compile check
 
 The dedicated test pipeline executes Django test suite in a Python matrix to detect runtime differences across versions.
+
+## Suggested Evidence for PRs
+
+- attach screenshots or logs of key Swagger calls
+- include Postman run summary for regression scenarios
+- include note for manual NotificationLog verification when Celery was run
