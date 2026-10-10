@@ -113,7 +113,7 @@ def get_flight_price(request):
 
 
 class AdminSummaryView(APIView):
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAdminUser]
 
     def get(self, request):
         counts = PriceAlert.objects.aggregate(
