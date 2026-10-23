@@ -10,6 +10,10 @@ SECRET_KEY = os.environ.get("SECRET_KEY")
 DEBUG = True
 ALLOWED_HOSTS = ["*"]
 
+FLIGHT_PRICE_API_URL = os.environ.get(
+    "FLIGHT_PRICE_API_URL", "http://localhost:8000/api/flights/price/"
+)
+
 if os.environ.get("DB_ENGINE", "sqlite").lower() == "postgres":
     DATABASES = {
         "default": {

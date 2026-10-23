@@ -1,11 +1,15 @@
+from decimal import Decimal
+from unittest import mock
+
 from django.contrib.auth.models import User
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import NotificationLog, PriceAlert
+from .tasks import check_prices, parse_price, send_notification
 
 
 class PriceThresholdTest(TestCase):
@@ -165,3 +169,82 @@ class ApiAuthAndAlertFlowTest(APITestCase):
 
         invalid_response = self.client.get(reverse("flight-price"), {"route": "XYZ-ABC"})
         self.assertEqual(invalid_response.status_code, status.HTTP_404_NOT_FOUND)
+
+
+class ParsePriceTest(TestCase):
+    def test_valid_values(self):
+        self.assertEqual(parse_price(4200), Decimal("4200"))
+        self.assertEqual(parse_price("4200.50"), Decimal("4200.50"))
+        self.assertEqual(parse_price(4200.5), Decimal("4200.5"))
+
+    def test_invalid_values(self):
+        for value in (None, True, "abc", "", "NaN", "Infinity", -1, [4200], {"p": 1}):
+            self.assertIsNone(parse_price(value), value)
+
+
+@override_settings(FLIGHT_PRICE_API_URL="http://web:8000/api/flights/price/")
+class CheckPricesTaskTest(TestCase):
+    def setUp(self):
+        user = User.objects.create_user(username="u", password="p")
+        self.alert = PriceAlert.objects.create(
+            user=user, origin="DEL", destination="BOM", threshold_price=4500
+        )
+
+    def _run(self, json_value=None, json_error=False):
+        response = mock.Mock(status_code=200)
+        if json_error:
+            response.json.side_effect = ValueError("bad json")
+        else:
+            response.json.return_value = json_value
+        with mock.patch("api.tasks.requests.get", return_value=response) as get, \
+                mock.patch("api.tasks.send_notification.delay") as delay:
+            check_prices()
+        return get, delay
+
+    def test_uses_configured_url_and_enqueues_below_threshold(self):
+        get, delay = self._run({"price": 4200})
+        self.assertEqual(get.call_args.args[0], "http://web:8000/api/flights/price/")
+        delay.assert_called_once_with(self.alert.id, "4200")
+
+    def test_above_threshold_does_not_enqueue(self):
+        _, delay = self._run({"price": 5000})
+        delay.assert_not_called()
+
+    def test_bad_payloads_are_skipped(self):
+        for payload in ({}, {"price": None}, {"price": "cheap"}, [4200], None):
+            _, delay = self._run(payload)
+            delay.assert_not_called()
+        _, delay = self._run(json_error=True)
+        delay.assert_not_called()
+
+
+class SendNotificationTaskTest(TestCase):
+    def setUp(self):
+        user = User.objects.create_user(username="u", password="p")
+        self.alert = PriceAlert.objects.create(
+            user=user, origin="DEL", destination="BOM", threshold_price=4500
+        )
+
+    def test_creates_single_log_when_run_twice(self):
+        send_notification(self.alert.id, "4200")
+        send_notification(self.alert.id, "4200")
+
+        self.assertEqual(NotificationLog.objects.filter(alert=self.alert).count(), 1)
+        self.alert.refresh_from_db()
+        self.assertEqual(self.alert.status, PriceAlert.Status.TRIGGERED)
+
+    def test_deleted_alert_is_ignored(self):
+        alert_id = self.alert.id
+        self.alert.delete()
+
+        send_notification(alert_id, "4200")
+
+        self.assertEqual(NotificationLog.objects.count(), 0)
+
+    def test_inactive_alert_is_ignored(self):
+        self.alert.status = PriceAlert.Status.INACTIVE
+        self.alert.save()
+
+        send_notification(self.alert.id, "4200")
+
+        self.assertEqual(NotificationLog.objects.count(), 0)

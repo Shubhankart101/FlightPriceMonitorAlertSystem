@@ -76,6 +76,10 @@ CELERY_RESULT_BACKEND = os.environ.get("CELERY_RESULT_BACKEND")
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 
+# Must be reachable from the Celery worker, not just the web process.
+FLIGHT_PRICE_API_URL = os.environ.get("FLIGHT_PRICE_API_URL")
+FLIGHT_PRICE_API_TIMEOUT = float(os.environ.get("FLIGHT_PRICE_API_TIMEOUT", "10"))
+
 CELERY_BEAT_SCHEDULE = {
     "check-flight-prices-every-minute": {
         "task": "api.tasks.check_prices",

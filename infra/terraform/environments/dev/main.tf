@@ -87,6 +87,7 @@ module "app_service" {
     DB_PORT                = "5432"
     CELERY_BROKER_URL      = "rediss://${module.redis.hostname}:${module.redis.ssl_port}/0"
     CELERY_RESULT_BACKEND  = "rediss://${module.redis.hostname}:${module.redis.ssl_port}/0"
+    FLIGHT_PRICE_API_URL   = "https://app-${local.name_prefix}.azurewebsites.net/api/flights/price/"
   }
   tags = local.tags
 }
