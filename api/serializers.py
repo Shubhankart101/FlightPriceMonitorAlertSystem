@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.contrib.auth.models import User
 from rest_framework import serializers
 
@@ -36,7 +38,7 @@ class AlertSerializer(serializers.ModelSerializer):
 class AlertCreateSerializer(serializers.Serializer):
     origin = serializers.CharField(max_length=10)
     destination = serializers.CharField(max_length=10)
-    threshold_price = serializers.DecimalField(max_digits=10, decimal_places=2, min_value=1)
+    threshold_price = serializers.DecimalField(max_digits=10, decimal_places=2, min_value=Decimal("1"))
 
     def validate_origin(self, value):
         return value.strip().upper()

@@ -65,6 +65,9 @@ SPECTACULAR_SETTINGS = {
     "TITLE": "PulseNotify API",
     "DESCRIPTION": "Flight alert monitoring API with async price checks.",
     "VERSION": "1.0.0",
+    # Show write-only fields (e.g. password) in request bodies.
+    "COMPONENT_SPLIT_REQUEST": True,
+    "SWAGGER_UI_SETTINGS": {"persistAuthorization": True},
 }
 
 SIMPLE_JWT = {
